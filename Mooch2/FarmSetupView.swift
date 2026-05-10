@@ -5,18 +5,21 @@ struct FarmSetupView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
-    @State private var farmName = "Valley Walnut Co."
-    @State private var latitude: Double? = 39.7596
-    @State private var longitude: Double? = -121.6219
-    @State private var latText = "39.75960"
-    @State private var lonText = "-121.62190"
+    @State private var farmName = ""
+    @State private var latitude: Double? = nil
+    @State private var longitude: Double? = nil
+    @State private var latText = ""
+    @State private var lonText = ""
     @State private var selectedCrop: CropType = .walnuts
     @State private var selectedWater: WaterSource = .canal
-    @State private var acreageText = "120"
+    @State private var acreageText = "40"
     @State private var isLocating = false
     @State private var suggestedCrop: CropType? = nil
     @State private var isSaving = false
     @State private var validationError: String? = nil
+    @State private var isVerifying = false
+    @State private var detectedPlace = ""
+    @State private var showLocationConfirm = false
 
     private let locationManager = CLLocationManager()
     var onDismiss: (() -> Void)? = nil
@@ -42,61 +45,59 @@ struct FarmSetupView: View {
                 }
                 .padding(20)
             }
+
+            if isVerifying {
+                ZStack {
+                    Color.black.opacity(0.45).ignoresSafeArea()
+                    VStack(spacing: 16) {
+                        ProgressView().tint(Color.moochGreen).scaleEffect(1.3)
+                        Text("AI IS ANALYZING")
+                            .font(.system(size: 12, weight: .black, design: .monospaced))
+                            .foregroundColor(Color.moochTextPrimary)
+                            .tracking(2.0)
+                        Text("Verifying your location…")
+                            .font(.system(size: 12, design: .monospaced))
+                            .foregroundColor(Color.moochTextSecondary)
+                    }
+                    .padding(28)
+                    .background(Color.moochBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .shadow(color: .black.opacity(0.2), radius: 20)
+                }
+            }
+        }
+        .onAppear { requestGPS() }
+        .alert("Confirm Your Location", isPresented: $showLocationConfirm) {
+            Button("Yes, confirm farm") { save() }
+            Button("No, go back", role: .cancel) { }
+        } message: {
+            Text("We detected:\n\(detectedPlace)\n\nAre you sure this is an agricultural site?")
         }
     }
 
     // MARK: Header
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("NEW FARM")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(Color.moochTextTertiary)
-                        .tracking(2.0)
-                    HStack(spacing: 8) {
-                        Text("Set Up Your Field")
-                            .font(.system(size: 24, weight: .heavy, design: .rounded))
-                            .foregroundColor(Color.moochTextPrimary)
-                        Text("DEMO")
-                            .font(.system(size: 9, weight: .bold, design: .monospaced))
-                            .foregroundColor(Color.moochAmber)
-                            .tracking(1.5)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(Color.moochAmberLight)
-                            .clipShape(Capsule())
-                    }
-                }
-                Spacer()
-                if dismiss != nil {
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(Color.moochTextSecondary)
-                            .frame(width: 32, height: 32)
-                            .background(Color.moochSurface)
-                            .clipShape(Circle())
-                            .overlay(Circle().stroke(Color.moochBorder, lineWidth: 1))
-                    }
-                }
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("NEW FARM")
+                    .font(.system(size: 11, weight: .bold, design: .monospaced))
+                    .foregroundColor(Color.moochTextTertiary)
+                    .tracking(2.0)
+                Text("Set Up Your Field")
+                    .font(.system(size: 24, weight: .heavy, design: .rounded))
+                    .foregroundColor(Color.moochTextPrimary)
             }
-            HStack(spacing: 6) {
-                Image(systemName: "flame.fill")
-                    .font(.system(size: 10))
-                    .foregroundColor(Color.moochAmber)
-                Text("Coordinates frozen at 2018 Camp Fire origin · Pulga, Butte County CA")
-                    .font(.system(size: 10, weight: .medium, design: .monospaced))
-                    .foregroundColor(Color.moochAmber)
+            Spacer()
+            Button { dismiss() } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(Color.moochTextSecondary)
+                    .frame(width: 32, height: 32)
+                    .background(Color.moochSurface)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(Color.moochBorder, lineWidth: 1))
             }
-            .padding(.horizontal, 10)
-            .padding(.vertical, 7)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.moochAmberLight)
-            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.moochAmber.opacity(0.25), lineWidth: 1))
         }
     }
 
@@ -105,7 +106,7 @@ struct FarmSetupView: View {
     private var nameSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             sectionLabel("FARM NAME")
-            TextField("e.g. Valley Oak Farm", text: $farmName)
+            TextField("Input name here", text: $farmName)
                 .font(.system(size: 16))
                 .padding(14)
                 .background(Color.moochSurface)
@@ -240,11 +241,12 @@ struct FarmSetupView: View {
     private var waterSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             sectionLabel("WATER SOURCE")
-            HStack(spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
                 ForEach(WaterSource.allCases, id: \.rawValue) { source in
                     waterButton(source)
                 }
             }
+            .fixedSize(horizontal: false, vertical: true)
         }
     }
 
@@ -254,7 +256,7 @@ struct FarmSetupView: View {
         switch source {
         case .well:      icon = "drop.fill"
         case .canal:     icon = "water.waves"
-        case .reservoir: icon = "lake"
+        case .reservoir: icon = "cylinder.fill"
         }
         return Button {
             selectedWater = source
@@ -274,7 +276,7 @@ struct FarmSetupView: View {
                     .multilineTextAlignment(.center)
             }
             .padding(10)
-            .frame(maxWidth: .infinity)
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(selected ? Color.moochGreenLight : Color.moochSurface)
             .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -309,14 +311,13 @@ struct FarmSetupView: View {
     private var confirmButton: some View {
         Button {
             haptic(.heavy)
-            save()
+            beginVerification()
         } label: {
             HStack {
                 if isSaving {
                     ProgressView().tint(.white)
                 } else {
-                    let isParadise = abs((latitude ?? 0) - 39.7596) < 0.001
-                    Text(isParadise ? "LAUNCH DEMO FARM" : "CONFIRM FARM")
+                    Text("CONFIRM FARM")
                         .font(.system(size: 15, weight: .bold, design: .monospaced))
                         .tracking(1.5)
                 }
@@ -355,6 +356,29 @@ struct FarmSetupView: View {
             isSaving = false
             onDismiss?()
             dismiss()
+        }
+    }
+
+    private func beginVerification() {
+        guard canSave else { return }
+        isVerifying = true
+        Task {
+            if let lat = latitude, let lon = longitude {
+                let geocoder = CLGeocoder()
+                let loc = CLLocation(latitude: lat, longitude: lon)
+                if let placemark = try? await geocoder.reverseGeocodeLocation(loc).first {
+                    let parts = [placemark.name, placemark.locality, placemark.administrativeArea]
+                        .compactMap { $0 }
+                    detectedPlace = parts.joined(separator: ", ")
+                } else {
+                    detectedPlace = String(format: "%.4f, %.4f", lat, lon)
+                }
+            }
+            try? await Task.sleep(nanoseconds: 2_200_000_000)
+            await MainActor.run {
+                isVerifying = false
+                showLocationConfirm = true
+            }
         }
     }
 

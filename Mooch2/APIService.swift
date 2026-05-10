@@ -146,31 +146,36 @@ enum APIService {
         let systemPrompt: String
         let userPrompt: String
 
+        let delegationFormat = """
+            Structure your response as: one-line risk assessment, then exactly 3 numbered crew delegation items. \
+            Format each item as [ROLE]: action (max 18 words). \
+            Use roles: HARVEST CREW, IRRIGATION, EQUIPMENT OPS. Order by urgency. No fluff.
+            """
+
         if isDemoMode {
             systemPrompt = """
             You are an emergency agricultural advisor responding to the Camp Fire, Butte County, California, November 8, 2018. \
             A walnut farmer on a 120-acre farm needs urgent guidance. The fire is 8 miles NE moving at 35 mph driven by Diablo winds. \
             AQI is 284 (Very Unhealthy). Butte Creek canal intake is compromised by fire proximity and ash loading. \
             Walnut hull-stain threshold has already been exceeded — AQI 284 is nearly 3x the safe limit of 100. \
-            Be direct, specific, and urgent. Structure your response: one sentence risk assessment, then exactly 3 numbered action items. Each action item max 20 words. No fluff.
+            Be direct, specific, and urgent. \(delegationFormat)
             """
             userPrompt = """
             Farm: \(farmName). Crop: \(cropName). AQI: \(aqiValue) (\(aqiCategory)). \
             Nearest fire: \(fireDistanceMiles) miles \(fireBearing) of my farm. \
             Wind blowing \(windDirection) at \(windSpeed) mph. \
-            What are my 3 most urgent actions in the next 12 hours?
+            Assign my 3 most urgent crew tasks for the next 12 hours.
             """
         } else {
             systemPrompt = """
-            You are an emergency agricultural advisor. A small farmer needs urgent guidance during an active wildfire event. \
-            Be direct and specific. Structure your response as: one sentence risk assessment, then exactly 3 numbered action items. \
-            Each action item max 20 words. No fluff.
+            You are an emergency agricultural advisor. A small farmer needs urgent crew delegation during an active wildfire event. \
+            Be direct and specific. \(delegationFormat)
             """
             userPrompt = """
             Farm: \(farmName). Crop: \(cropName). AQI: \(aqiValue) (\(aqiCategory)). \
             Nearest fire: \(fireDistanceMiles) miles \(fireBearing) of my farm. \
             Wind blowing \(windDirection) at \(windSpeed) mph. \
-            What are my 3 most urgent actions in the next 12 hours?
+            Assign my 3 most urgent crew tasks for the next 12 hours.
             """
         }
 
@@ -207,8 +212,7 @@ enum APIService {
     }
 
     private static func localFallbackPlan(cropName: String, aqiValue: Int) -> String {
-        let threshold = 100
-        let overThreshold = aqiValue > threshold
+        let overThreshold = aqiValue > 100
         let statusLine = overThreshold
             ? "AQI \(aqiValue) EXCEEDS safe threshold for \(cropName) — crop damage risk is active."
             : "AQI \(aqiValue) is below critical threshold for \(cropName), but monitor closely."
@@ -216,9 +220,9 @@ enum APIService {
         return """
         \(statusLine)
 
-        1. Assess \(cropName) crop for visible smoke or ash deposit damage immediately.
-        2. Document current field conditions with photos for insurance purposes.
-        3. Contact your county agricultural commissioner for emergency guidance.
+        1. [HARVEST CREW] Halt collection. Assess \(cropName) for ash/smoke deposit damage and seal bins.
+        2. [IRRIGATION] Shut intake immediately. Test water source for ash and benzene before resuming.
+        3. [EQUIPMENT OPS] Move machinery to upwind side. Document locations with photos for insurance.
         """
     }
 

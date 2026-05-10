@@ -40,9 +40,9 @@ enum WaterSource: String, Codable, CaseIterable {
 
     var fireNote: String {
         switch self {
-        case .well:      return "Protected from upstream contamination"
-        case .canal:     return "Check for ash/benzene upstream before irrigating"
-        case .reservoir: return "Surface ash accumulation — use deeper intake"
+        case .well:      return "Safe from upstream ash"
+        case .canal:     return "Test for ash and benzene first"
+        case .reservoir: return "Use deeper intake only"
         }
     }
 }
@@ -189,6 +189,8 @@ class AppState {
 
     func saveFarm(_ farm: FarmProfile) {
         isDemoMode = false
+        hotspots = []
+        actionPlan = ""
         if let idx = farms.firstIndex(where: { $0.id == farm.id }) {
             farms[idx] = farm
         } else {
@@ -249,7 +251,7 @@ class AppState {
         let dist = nearestFireDistance.map { String(format: "%.1f", $0) } ?? "unknown"
         let bearing = nearestFireBearing
 
-        actionPlan = await APIService.generateActionPlan(
+        async let plan = APIService.generateActionPlan(
             farmName: farm.name,
             cropName: farm.cropType.info.name,
             aqiValue: aqiData.value,
@@ -260,6 +262,8 @@ class AppState {
             windSpeed: weatherData.windSpeed,
             isDemoMode: isDemoMode
         )
+        try? await Task.sleep(nanoseconds: 2_800_000_000)
+        actionPlan = await plan
     }
 
     // MARK: Demo

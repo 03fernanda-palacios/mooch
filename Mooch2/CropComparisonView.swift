@@ -4,23 +4,76 @@ struct CropComparisonView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
+    @State private var isLoading = true
+    @State private var phraseIndex = 0
+    @State private var contentOpacity: Double = 0
+
     private let crops: [CropType] = [.grapes, .lettuce, .walnuts, .almonds, .tomatoes]
     private static let harvestNowCrops: Set<CropType> = [.strawberries, .grapes, .lettuce, .cherries]
     private static let within48Crops: Set<CropType>   = [.almonds, .walnuts, .tomatoes, .apricots, .peaches]
+
+    private let analysisPhrases = [
+        "Cross-referencing crop thresholds…",
+        "Calculating smoke exposure ratios…",
+        "Ranking harvest urgency…",
+        "Comparing yield risk by variety…",
+        "Analyzing AQI impact per crop…",
+    ]
 
     private var currentAQI: Int { appState.aqiData.value }
 
     var body: some View {
         ZStack(alignment: .top) {
             Color.moochBackground.ignoresSafeArea()
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    header
-                    contextCard
-                    cropTable
+            if isLoading {
+                loadingScreen
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        header
+                        contextCard
+                        cropTable
+                    }
+                    .padding(20)
                 }
-                .padding(20)
+                .opacity(contentOpacity)
             }
+        }
+        .onAppear {
+            startPhraseTimer()
+            Task {
+                try? await Task.sleep(nanoseconds: 2_400_000_000)
+                withAnimation(.easeOut(duration: 0.4)) { isLoading = false }
+                withAnimation(.easeIn(duration: 0.35).delay(0.1)) { contentOpacity = 1 }
+            }
+        }
+    }
+
+    private var loadingScreen: some View {
+        VStack(spacing: 20) {
+            Spacer()
+            ProgressView()
+                .tint(Color.moochGreen)
+                .scaleEffect(1.3)
+            VStack(spacing: 6) {
+                Text("ANALYZING CROPS")
+                    .font(.system(size: 11, weight: .black, design: .monospaced))
+                    .foregroundColor(Color.moochTextPrimary)
+                    .tracking(2.0)
+                Text(analysisPhrases[phraseIndex % analysisPhrases.count])
+                    .font(.system(size: 12, weight: .medium, design: .monospaced))
+                    .foregroundColor(Color.moochTextSecondary)
+                    .animation(.easeInOut(duration: 0.4), value: phraseIndex)
+            }
+            Spacer()
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func startPhraseTimer() {
+        Timer.scheduledTimer(withTimeInterval: 0.7, repeats: true) { t in
+            phraseIndex += 1
+            if !isLoading { t.invalidate() }
         }
     }
 

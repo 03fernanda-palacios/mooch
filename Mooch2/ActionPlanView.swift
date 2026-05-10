@@ -11,14 +11,18 @@ struct ActionPlanView: View {
     @State private var factIndex = 0
     @State private var isShowingSMS = false
     @State private var appeared = false
+    @State private var regenCount = 0
 
-    private let facts = [
-        "Wildfires can spread faster than 14 mph — faster than most people can run.",
-        "Smoke taint in grapes can occur at AQI levels as low as 75.",
-        "N95 respirators filter 95% of airborne particles including wildfire smoke.",
-        "A single wildfire can destroy an entire vintage — smoke taint is irreversible.",
-        "Walnut hull staining begins within 48 hours of smoke exposure above AQI 100.",
+    private let loadingPhrases = [
+        "Analyzing crop exposure data…",
+        "Prioritizing crew assignments…",
+        "Cross-referencing fire proximity…",
+        "Calculating smoke taint risk…",
+        "Optimizing harvest window…",
+        "Assessing water source contamination…",
     ]
+
+    private let regenLabels = ["RE-GENERATE", "REFINE PLAN", "NEW ANALYSIS"]
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -135,17 +139,18 @@ struct ActionPlanView: View {
     }
 
     private var loadingView: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 16) {
             ProgressView()
                 .tint(Color.moochGreen)
-            Text(facts[factIndex])
-                .font(.system(size: 12))
+                .scaleEffect(1.2)
+            Text(loadingPhrases[factIndex % loadingPhrases.count])
+                .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundColor(Color.moochTextSecondary)
                 .multilineTextAlignment(.center)
-                .animation(.easeInOut(duration: 0.4), value: factIndex)
+                .animation(.easeInOut(duration: 0.5), value: factIndex)
         }
         .frame(maxWidth: .infinity)
-        .padding(20)
+        .padding(24)
         .glassCard()
     }
 
@@ -257,10 +262,11 @@ struct ActionPlanView: View {
 
             Button {
                 haptic(.medium)
+                regenCount += 1
                 checkedItems.removeAll()
                 Task { await appState.generatePlan() }
             } label: {
-                Label("RE-GENERATE", systemImage: "arrow.clockwise")
+                Label(regenLabels[regenCount % regenLabels.count], systemImage: "arrow.clockwise")
                     .font(.system(size: 12, weight: .semibold, design: .monospaced))
                     .foregroundColor(Color.moochTextSecondary)
                     .tracking(0.8)
@@ -275,8 +281,8 @@ struct ActionPlanView: View {
     }
 
     private func startFactCycle() {
-        Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
-            factIndex = (factIndex + 1) % facts.count
+        Timer.scheduledTimer(withTimeInterval: 1.8, repeats: true) { _ in
+            factIndex += 1
         }
     }
 }

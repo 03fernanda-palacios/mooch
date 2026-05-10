@@ -62,7 +62,7 @@ struct LiveMapView: View {
             FarmListView()
                 .presentationDetents([.medium, .large])
         }
-        .task {
+        .task(id: appState.activeFarmID) {
             await appState.fetchAllData()
         }
         .animation(.easeInOut(duration: 0.3), value: appState.fireAlertActive)
@@ -403,8 +403,8 @@ struct FieldBriefDrawer: View {
     // MARK: Peek Content
 
     private var peekContent: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 8) {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 11) {
                 Text(appState.activeFarm?.name ?? "No Farm Selected")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(Color.moochTextPrimary)
@@ -433,11 +433,9 @@ struct FieldBriefDrawer: View {
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.moochBorder, lineWidth: 1))
             }
-            .padding(.top, 2)
         }
         .padding(.horizontal, 22)
-        .padding(.top, 14)
-        .padding(.bottom, 18)
+        .padding(.vertical, 20)
     }
 
     private var peekChips: some View {
@@ -514,7 +512,7 @@ struct FieldBriefDrawer: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 18)
         }
-        .frame(maxHeight: 620)
+        .frame(maxHeight: 500)
     }
 
     private var statusRows: some View {

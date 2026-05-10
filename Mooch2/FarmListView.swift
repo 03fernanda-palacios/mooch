@@ -68,7 +68,7 @@ struct FarmListView: View {
                 appState.loadDemoData()
                 dismiss()
             } label: {
-                Text("Load Demo: Paradise Farm")
+                Text("Try Example: Paradise Farm")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(Color.moochTextTertiary)
             }
