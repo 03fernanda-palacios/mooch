@@ -449,6 +449,7 @@ struct MoochMapView: UIViewRepresentable {
         var onTap: ((CLLocationCoordinate2D) -> Void)?
         private var lastFarmCoord: CLLocationCoordinate2D?
         private var lastHotspotCount = 0
+        private var lastFirstHotspotID: UUID?
 
         init(onTap: ((CLLocationCoordinate2D) -> Void)?) {
             self.onTap = onTap
@@ -463,9 +464,9 @@ struct MoochMapView: UIViewRepresentable {
 
             let farmCoord = farms.first?.coordinate
             let coordChanged = farmCoord.map { !coordEqual($0, lastFarmCoord) } ?? false
-            let countChanged = hotspots.count != lastHotspotCount
+            let hotspotChanged = hotspots.count != lastHotspotCount || hotspots.first?.id != lastFirstHotspotID
 
-            if coordChanged || countChanged {
+            if coordChanged || hotspotChanged {
                 map.removeAnnotations(map.annotations)
                 map.removeOverlays(map.overlays)
 
@@ -490,6 +491,7 @@ struct MoochMapView: UIViewRepresentable {
                 autoZoom(map: map, farms: farms, hotspots: hotspots)
                 lastFarmCoord = farmCoord
                 lastHotspotCount = hotspots.count
+                lastFirstHotspotID = hotspots.first?.id
             }
         }
 

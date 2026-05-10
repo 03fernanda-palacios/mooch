@@ -238,7 +238,7 @@ class AppState {
         async let aqi    = APIService.fetchAQI(lat: farm.latitude, lon: farm.longitude)
         async let wx     = APIService.fetchWeather(lat: farm.latitude, lon: farm.longitude)
 
-        hotspots    = (try? await spots)  ?? APIService.fallbackHotspots(lat: farm.latitude, lon: farm.longitude)
+        hotspots    = (try? await spots)  ?? []
         aqiData     = (try? await aqi)    ?? .fallback
         weatherData = (try? await wx)     ?? .fallback
     }

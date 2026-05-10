@@ -592,6 +592,7 @@ struct FieldBriefDrawer: View {
         Button {
             haptic(.medium)
             appState.clearAllFarms()
+            appState.loadDemoData()
         } label: {
             Text("Reset Farm Setup")
                 .font(.system(size: 13))
