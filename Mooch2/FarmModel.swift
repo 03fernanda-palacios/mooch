@@ -188,6 +188,7 @@ class AppState {
     }
 
     func saveFarm(_ farm: FarmProfile) {
+        isDemoMode = false
         if let idx = farms.firstIndex(where: { $0.id == farm.id }) {
             farms[idx] = farm
         } else {
@@ -210,6 +211,7 @@ class AppState {
     func clearAllFarms() {
         farms.removeAll()
         activeFarmID = nil
+        isDemoMode = false
         UserDefaults.standard.removeObject(forKey: farmsKey)
         UserDefaults.standard.removeObject(forKey: activeKey)
     }
@@ -226,7 +228,7 @@ class AppState {
     // MARK: Data Fetching
 
     func fetchAllData() async {
-        guard let farm = activeFarm else { return }
+        guard let farm = activeFarm, !isDemoMode else { return }
         isLoadingData = true
         defer { isLoadingData = false }
 
@@ -264,7 +266,7 @@ class AppState {
 
     func loadDemoData() {
         isDemoMode = true
-        let demoFarm = FarmProfile(
+        let paradiseFarm = FarmProfile(
             id: UUID(),
             name: "Paradise Farm",
             latitude: 39.7596,
@@ -273,8 +275,26 @@ class AppState {
             waterSource: .canal,
             acreage: 120
         )
-        farms = [demoFarm]
-        activeFarmID = demoFarm.id
+        let magaliaVineyard = FarmProfile(
+            id: UUID(),
+            name: "Magalia Vineyard",
+            latitude: 39.8034,
+            longitude: -121.5781,
+            cropType: .grapes,
+            waterSource: .well,
+            acreage: 65
+        )
+        let butteGreens = FarmProfile(
+            id: UUID(),
+            name: "Butte Greens",
+            latitude: 39.7245,
+            longitude: -121.5896,
+            cropType: .lettuce,
+            waterSource: .reservoir,
+            acreage: 45
+        )
+        farms = [paradiseFarm, magaliaVineyard, butteGreens]
+        activeFarmID = paradiseFarm.id
 
         hotspots = [
             FireHotspot(latitude: 39.8292, longitude: -121.4820, brightness: 412, frp: 98, note: "Pulga Ignition Point"),

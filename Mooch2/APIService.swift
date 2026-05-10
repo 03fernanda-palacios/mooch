@@ -231,18 +231,69 @@ enum APIService {
         bearing: String
     ) -> String {
         let distStr = String(format: "%.1f", distance)
-        let cropName = farm.cropType.info.name
-        return """
-        🔥 FIRE ALERT — \(farm.name)
-        Fire: \(distStr) mi \(bearing) | AQI: \(aqi) | Crop: \(cropName)
-        ALL FIELD WORKERS: Leave immediately. Wear N95 if available.
-        Check in with supervisor before leaving property.
+        let harvestAction = harvestGuidance(for: farm.cropType, aqi: aqi)
+        let irrigationAction = irrigationGuidance(for: farm.waterSource, distStr: distStr, bearing: bearing)
 
-        🔥 ALERTA DE INCENDIO — \(farm.name)
-        Incendio: \(distStr) mi \(bearing) | Calidad del aire: \(aqi)
-        TODOS LOS TRABAJADORES: Salgan de inmediato. Usen mascarilla N95 si tienen.
-        Repórtense con el supervisor antes de salir del predio.
+        return """
+        🔥 FIRE ALERT — \(farm.name) | AQI \(aqi) | Fire \(distStr) mi \(bearing)
+
+        [Harvest Crew]
+        \(harvestAction)
+
+        [Irrigation Lead]
+        \(irrigationAction)
+
+        [Equipment Operator]
+        Move machinery to upwind side of property. Cover exposed engines with tarps. Document all equipment locations with photos for insurance.
+
+        Wear N95 if available. Check in with supervisor before leaving.
         """
+    }
+
+    private static func harvestGuidance(for crop: CropType, aqi: Int) -> String {
+        let info = crop.info
+        let over = aqi > info.smokeAQIThreshold
+        switch crop {
+        case .grapes:
+            return over
+                ? "STOP harvest immediately — smoke taint is irreversible above AQI \(info.smokeAQIThreshold). Seal any harvested bins. Do not process further until tested."
+                : "Monitor AQI closely. Harvest window open but threshold (\(info.smokeAQIThreshold)) at risk."
+        case .walnuts:
+            return over
+                ? "Harvest any split-hull walnuts NOW — exposed nuts absorb smoke within 48h. Prioritize drying yard rows furthest from fire bearing."
+                : "AQI below walnut threshold (\(info.smokeAQIThreshold)). Continue harvest but monitor hull split status."
+        case .almonds:
+            return over
+                ? "Pull harvesters to rows furthest from fire. Complete any open-hull sections within \(info.harvestWindowHours)h or loss is total."
+                : "Continue almond harvest. Threshold (\(info.smokeAQIThreshold)) not yet breached — watch ash accumulation."
+        case .lettuce:
+            return over
+                ? "TOTAL LOSS threshold exceeded — AQI \(aqi) vs safe \(info.smokeAQIThreshold). Stop harvest. Document for insurance."
+                : "Harvest all ready lettuce immediately — threshold (\(info.smokeAQIThreshold)) is within range."
+        case .strawberries:
+            return over
+                ? "HARVEST NOW or total loss. Surface tissue destroyed within \(info.harvestWindowHours)h above AQI \(info.smokeAQIThreshold)."
+                : "Complete harvest immediately — strawberry window is narrow and AQI is rising."
+        case .tomatoes:
+            return over
+                ? "Smoke phenols compromising flavor marketability. Harvest any peak-ripe fruit within \(info.harvestWindowHours)h and refrigerate."
+                : "Continue harvest. AQI below tomato threshold (\(info.smokeAQIThreshold))."
+        default:
+            return over
+                ? "AQI \(aqi) exceeds safe limit for \(info.name). Prioritize harvest of any ready crop within \(info.harvestWindowHours)h."
+                : "AQI within safe range for \(info.name). Continue normal harvest operations."
+        }
+    }
+
+    private static func irrigationGuidance(for source: WaterSource, distStr: String, bearing: String) -> String {
+        switch source {
+        case .canal:
+            return "SHUT canal intake NOW — fire \(distStr) mi \(bearing) means ash and benzene contamination upstream. Switch to well backup. Document last clean-water reading for regulators."
+        case .reservoir:
+            return "Switch reservoir intake to deepest available port — surface ash accumulation is active. Test for turbidity before any crop irrigation. Seal pump house vents."
+        case .well:
+            return "Well water unaffected by surface contamination. Continue normal irrigation. Monitor pump house for ash infiltration and keep vents sealed."
+        }
     }
 
     // MARK: Helpers

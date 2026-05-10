@@ -167,6 +167,7 @@ struct FarmSetupView: View {
             farms: farms,
             hotspots: [],
             windDirection: "SW",
+            aqiValue: 0,
             isSetupMode: true,
             onTap: { coord in
                 latitude = coord.latitude

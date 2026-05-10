@@ -68,7 +68,6 @@ struct FarmListView: View {
                 appState.loadDemoData()
                 dismiss()
             } label: {
-                // Demo: loads Paradise Farm — Camp Fire wildfire scenario
                 Text("Load Demo: Paradise Farm")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(Color.moochTextTertiary)
@@ -102,7 +101,7 @@ struct FarmListView: View {
 
     private func farmRow(_ farm: FarmProfile) -> some View {
         let info = farm.cropType.info
-        let aqi = appState.activeFarmID == farm.id ? appState.aqiData.value : 0
+        let aqi = appState.aqiData.value
         let riskColor = riskDotColor(farm: farm, aqi: aqi)
         let isActive = appState.activeFarmID == farm.id
 
@@ -150,8 +149,8 @@ struct FarmListView: View {
     }
 
     private func riskDotColor(farm: FarmProfile, aqi: Int) -> Color {
-        guard appState.activeFarmID == farm.id else { return Color.moochTextTertiary }
-        if appState.fireAlertActive { return .moochRed }
+        guard aqi > 0 else { return Color.moochTextTertiary }
+        if appState.activeFarmID == farm.id && appState.fireAlertActive { return .moochRed }
         if aqi > farm.cropType.info.smokeAQIThreshold { return .moochAmber }
         return .moochGreen
     }

@@ -8,6 +8,7 @@ struct LiveMapView: View {
     @State private var drawerExpanded = false
     @State private var showActionPlan = false
     @State private var showFarmList = false
+    @State private var showCropComparison = false
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -16,6 +17,7 @@ struct LiveMapView: View {
                 farms: appState.activeFarm.map { [$0] } ?? [],
                 hotspots: appState.hotspots,
                 windDirection: appState.weatherData.windDirection,
+                aqiValue: appState.aqiData.value,
                 isSetupMode: false,
                 onTap: nil
             )
@@ -28,9 +30,6 @@ struct LiveMapView: View {
 
             // Top HUD
             VStack(spacing: 0) {
-                if appState.isDemoMode {
-                    demoRibbon
-                }
                 topHUD
                 if appState.fireAlertActive {
                     fireAlertBanner
@@ -48,12 +47,16 @@ struct LiveMapView: View {
             FieldBriefDrawer(
                 expanded: $drawerExpanded,
                 showActionPlan: $showActionPlan,
-                showFarmList: $showFarmList
+                showFarmList: $showFarmList,
+                showCropComparison: $showCropComparison
             )
             .padding(.horizontal, 14)
         }
         .fullScreenCover(isPresented: $showActionPlan) {
             ActionPlanView()
+        }
+        .fullScreenCover(isPresented: $showCropComparison) {
+            CropComparisonView()
         }
         .sheet(isPresented: $showFarmList) {
             FarmListView()
@@ -87,6 +90,13 @@ struct LiveMapView: View {
         .padding(.horizontal, -14)
     }
 
+    private var dynamicIslandClearance: CGFloat {
+        let inset = UIApplication.shared.connectedScenes
+            .compactMap { $0 as? UIWindowScene }
+            .first?.windows.first?.safeAreaInsets.top ?? 54
+        return inset - 8
+    }
+
     // MARK: Top HUD
 
     private var topHUD: some View {
@@ -104,7 +114,7 @@ struct LiveMapView: View {
             Spacer()
             AQIWidget(aqi: appState.aqiData)
         }
-        .padding(.top, 56)
+        .padding(.top, 6)
         .padding(.bottom, 8)
     }
 
@@ -339,6 +349,7 @@ struct FieldBriefDrawer: View {
     @Binding var expanded: Bool
     @Binding var showActionPlan: Bool
     @Binding var showFarmList: Bool
+    @Binding var showCropComparison: Bool
 
     private var statusColor: Color {
         if appState.fireAlertActive { return .moochRed }
@@ -392,8 +403,8 @@ struct FieldBriefDrawer: View {
     // MARK: Peek Content
 
     private var peekContent: some View {
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text(appState.activeFarm?.name ?? "No Farm Selected")
                     .font(.system(size: 17, weight: .bold))
                     .foregroundColor(Color.moochTextPrimary)
@@ -407,6 +418,7 @@ struct FieldBriefDrawer: View {
                         .foregroundColor(statusColor)
                         .tracking(0.3)
                 }
+                peekChips
             }
             Spacer()
             Button {
@@ -421,10 +433,60 @@ struct FieldBriefDrawer: View {
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.moochBorder, lineWidth: 1))
             }
+            .padding(.top, 2)
         }
         .padding(.horizontal, 22)
         .padding(.top, 14)
-        .padding(.bottom, 22)
+        .padding(.bottom, 18)
+    }
+
+    private var peekChips: some View {
+        HStack(spacing: 6) {
+            if let farm = appState.activeFarm {
+                let info = farm.cropType.info
+                let aqi = appState.aqiData.value
+                let over = aqi > info.smokeAQIThreshold
+
+                // Crop chip
+                peekChip(
+                    label: "\(info.emoji) \(info.name.uppercased())",
+                    fg: Color(info.color),
+                    bg: Color(info.color).opacity(0.12)
+                )
+
+                // AQI chip
+                let (aqiFg, aqiBg): (Color, Color) = over
+                    ? (.moochRed, .moochRedLight)
+                    : (.moochGreen, .moochGreenLight)
+                peekChip(label: "AQI \(aqi)", fg: aqiFg, bg: aqiBg)
+
+                // Urgency chip
+                let (urgText, urgFg, urgBg) = peekUrgency(farm: farm, aqi: aqi)
+                peekChip(label: urgText, fg: urgFg, bg: urgBg)
+            }
+        }
+    }
+
+    private func peekChip(label: String, fg: Color, bg: Color) -> some View {
+        Text(label)
+            .font(.system(size: 9, weight: .bold, design: .monospaced))
+            .foregroundColor(fg)
+            .tracking(0.5)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 4)
+            .background(bg)
+            .clipShape(Capsule())
+    }
+
+    private func peekUrgency(farm: FarmProfile, aqi: Int) -> (String, Color, Color) {
+        let info = farm.cropType.info
+        let over = aqi > info.smokeAQIThreshold
+        let harvestNow: Set<CropType> = [.strawberries, .grapes, .lettuce, .cherries]
+        let within48:   Set<CropType> = [.almonds, .walnuts, .tomatoes, .apricots, .peaches]
+        if !over       { return ("MONITOR",      .moochGreen, .moochGreenLight) }
+        if harvestNow.contains(farm.cropType) { return ("HARVEST NOW", .moochRed,   .moochRedLight)  }
+        if within48.contains(farm.cropType)   { return ("ACT < 48H",   .moochAmber, .moochAmberLight) }
+        return ("AT RISK", .moochAmber, .moochAmberLight)
     }
 
     // MARK: Expanded Content
@@ -436,6 +498,7 @@ struct FieldBriefDrawer: View {
             VStack(alignment: .leading, spacing: 16) {
                 statusRows
                 actionPlanButton
+                cropComparisonButton
                 AQIForecastBar(baseAQI: appState.aqiData.value)
                 if let farm = appState.activeFarm {
                     CropRiskDashboard(
@@ -451,7 +514,7 @@ struct FieldBriefDrawer: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 18)
         }
-        .frame(maxHeight: 440)
+        .frame(maxHeight: 620)
     }
 
     private var statusRows: some View {
@@ -501,6 +564,29 @@ struct FieldBriefDrawer: View {
             .frame(height: 52)
             .background(appState.fireAlertActive ? Color.moochRed : Color.moochGreen)
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        }
+    }
+
+    private var cropComparisonButton: some View {
+        Button {
+            haptic(.medium)
+            showCropComparison = true
+        } label: {
+            HStack {
+                Image(systemName: "chart.bar.xaxis")
+                Text("CROP COMPARISON")
+                    .font(.system(size: 14, weight: .bold, design: .monospaced))
+                    .tracking(1.5)
+            }
+            .foregroundColor(Color.moochTextPrimary)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(Color.moochSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .stroke(Color.moochBorder, lineWidth: 1)
+            )
         }
     }
 

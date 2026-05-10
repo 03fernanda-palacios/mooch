@@ -23,11 +23,24 @@ final class FarmAnnotation: NSObject, MKAnnotation {
     let coordinate: CLLocationCoordinate2D
     let title: String?
     let farmName: String
+    let cropType: CropType
+    let aqiValue: Int
 
-    init(farm: FarmProfile) {
+    init(farm: FarmProfile, aqiValue: Int) {
         self.coordinate = farm.coordinate
         self.title = farm.name
         self.farmName = farm.name
+        self.cropType = farm.cropType
+        self.aqiValue = aqiValue
+    }
+
+    var riskTint: UIColor {
+        let info = cropType.info
+        let over = aqiValue > info.smokeAQIThreshold
+        let harvestNow: Set<CropType> = [.strawberries, .grapes, .lettuce, .cherries]
+        if over && harvestNow.contains(cropType) { return UIColor(red: 0.75, green: 0.22, blue: 0.17, alpha: 1) }
+        if over { return UIColor(red: 0.78, green: 0.41, blue: 0.04, alpha: 1) }
+        return UIColor(red: 0.18, green: 0.42, blue: 0.18, alpha: 1)
     }
 }
 
@@ -191,16 +204,25 @@ final class FireAnnotationView: MKAnnotationView {
 final class FarmAnnotationView: MKMarkerAnnotationView {
     override init(annotation: (any MKAnnotation)?, reuseIdentifier: String?) {
         super.init(annotation: annotation, reuseIdentifier: reuseIdentifier)
-        configure()
+        canShowCallout  = false
+        displayPriority = .required
+        updateForAnnotation()
     }
     required init?(coder: NSCoder) { fatalError() }
 
-    private func configure() {
-        markerTintColor  = UIColor(red: 0.20, green: 0.50, blue: 0.20, alpha: 1.0)
-        glyphImage       = UIImage(systemName: "house.fill")
-        glyphTintColor   = .white
-        canShowCallout   = false
-        displayPriority  = .required
+    override var annotation: (any MKAnnotation)? {
+        didSet { updateForAnnotation() }
+    }
+
+    private func updateForAnnotation() {
+        guard let farm = annotation as? FarmAnnotation else {
+            markerTintColor = UIColor(red: 0.20, green: 0.50, blue: 0.20, alpha: 1.0)
+            glyphImage      = UIImage(systemName: "house.fill")
+            glyphTintColor  = .white
+            return
+        }
+        markerTintColor = farm.riskTint
+        glyphText       = farm.cropType.info.emoji
     }
 }
 
@@ -382,6 +404,7 @@ struct MoochMapView: UIViewRepresentable {
     var farms: [FarmProfile]
     var hotspots: [FireHotspot]
     var windDirection: String
+    var aqiValue: Int
     var isSetupMode: Bool
     var onTap: ((CLLocationCoordinate2D) -> Void)?
 
@@ -412,7 +435,8 @@ struct MoochMapView: UIViewRepresentable {
 
     func updateUIView(_ map: MKMapView, context: Context) {
         context.coordinator.update(map: map, farms: farms, hotspots: hotspots,
-                                   windDirection: windDirection, isSetupMode: isSetupMode)
+                                   windDirection: windDirection, aqiValue: aqiValue,
+                                   isSetupMode: isSetupMode)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -431,7 +455,7 @@ struct MoochMapView: UIViewRepresentable {
         }
 
         func update(map: MKMapView, farms: [FarmProfile], hotspots: [FireHotspot],
-                    windDirection: String, isSetupMode: Bool) {
+                    windDirection: String, aqiValue: Int, isSetupMode: Bool) {
             guard !isSetupMode else {
                 updateSetupAnnotations(map: map, farms: farms)
                 return
@@ -455,7 +479,7 @@ struct MoochMapView: UIViewRepresentable {
                     map.addOverlay(ThreatZoneOverlay.warning(center: farm.coordinate), level: .aboveRoads)
                     map.addOverlay(ThreatZoneOverlay.danger(center: farm.coordinate), level: .aboveRoads)
                     map.addOverlay(SmokeDriftOverlay.make(from: farm.coordinate, windDirection: windDirection), level: .aboveRoads)
-                    map.addAnnotation(FarmAnnotation(farm: farm))
+                    map.addAnnotation(FarmAnnotation(farm: farm, aqiValue: aqiValue))
                 }
 
                 for hotspot in hotspots {
@@ -472,7 +496,7 @@ struct MoochMapView: UIViewRepresentable {
         private func updateSetupAnnotations(map: MKMapView, farms: [FarmProfile]) {
             map.removeAnnotations(map.annotations)
             for farm in farms {
-                map.addAnnotation(FarmAnnotation(farm: farm))
+                map.addAnnotation(FarmAnnotation(farm: farm, aqiValue: 0))
             }
         }
 
