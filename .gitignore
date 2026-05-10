@@ -1,0 +1,5 @@
+Mooch2/Secrets.swift
+*.xcuserstate
+xcuserdata/
+.DS_Store
+DerivedData/
