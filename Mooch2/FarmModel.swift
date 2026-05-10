@@ -55,13 +55,15 @@ struct FireHotspot: Identifiable, Codable {
     let longitude: Double
     let brightness: Double
     let frp: Double
+    var note: String?
 
-    init(id: UUID = UUID(), latitude: Double, longitude: Double, brightness: Double, frp: Double) {
+    init(id: UUID = UUID(), latitude: Double, longitude: Double, brightness: Double, frp: Double, note: String? = nil) {
         self.id = id
         self.latitude = latitude
         self.longitude = longitude
         self.brightness = brightness
         self.frp = frp
+        self.note = note
     }
 
     var radiusMeters: Double { max(500, min(frp * 80, 8000)) }
@@ -275,10 +277,10 @@ class AppState {
         activeFarmID = demoFarm.id
 
         hotspots = [
-            FireHotspot(latitude: 39.8292, longitude: -121.4820, brightness: 412, frp: 98),
+            FireHotspot(latitude: 39.8292, longitude: -121.4820, brightness: 412, frp: 98, note: "Pulga Ignition Point"),
             FireHotspot(latitude: 39.8534, longitude: -121.5012, brightness: 388, frp: 74),
             FireHotspot(latitude: 39.8101, longitude: -121.4600, brightness: 356, frp: 61),
-            FireHotspot(latitude: 39.8745, longitude: -121.4430, brightness: 445, frp: 112),
+            FireHotspot(latitude: 39.8745, longitude: -121.4430, brightness: 445, frp: 112, note: "Camp Fire Peak Spread Zone"),
             FireHotspot(latitude: 39.7980, longitude: -121.4950, brightness: 334, frp: 52),
         ]
         aqiData = AQIData(value: 284, category: "Very Unhealthy", parameter: "PM2.5")

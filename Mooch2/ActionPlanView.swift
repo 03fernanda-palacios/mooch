@@ -86,32 +86,39 @@ struct ActionPlanView: View {
     // MARK: Risk Card
 
     private var riskCard: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        HStack(spacing: 0) {
             if let farm = appState.activeFarm {
-                HStack(spacing: 12) {
-                    riskPill(label: "CROP", value: farm.cropType.info.name)
-                    riskPill(label: "AQI", value: "\(appState.aqiData.value)")
-                    riskPill(label: "WATER", value: farm.waterSource.rawValue)
-                }
+                riskStat(label: "CROP",  value: farm.cropType.info.name.uppercased())
+                Divider().padding(.vertical, 10)
+                riskStat(label: "AQI",   value: "\(appState.aqiData.value)")
+                Divider().padding(.vertical, 10)
+                riskStat(label: "WATER", value: farm.waterSource.rawValue.uppercased())
                 if let dist = appState.nearestFireDistance {
-                    riskPill(label: "FIRE", value: String(format: "%.1f MI %@", dist, appState.nearestFireBearing))
+                    Divider().padding(.vertical, 10)
+                    riskStat(label: "FIRE",
+                             value: String(format: "%.1f MI %@", dist, appState.nearestFireBearing).uppercased(),
+                             color: appState.fireAlertActive ? .moochRed : .moochAmber)
                 }
             }
         }
-        .padding(14)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
         .glassCard(12)
     }
 
-    private func riskPill(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
+    private func riskStat(label: String, value: String, color: Color = .moochTextPrimary) -> some View {
+        VStack(spacing: 5) {
             Text(label)
-                .font(.system(size: 8, weight: .medium, design: .monospaced))
+                .font(.system(size: 9, weight: .semibold, design: .monospaced))
                 .foregroundColor(Color.moochTextTertiary)
-                .tracking(1.0)
-            Text(value.uppercased())
+                .tracking(1.5)
+            Text(value)
                 .font(.system(size: 12, weight: .bold, design: .monospaced))
-                .foregroundColor(Color.moochTextPrimary)
+                .foregroundColor(color)
+                .minimumScaleFactor(0.65)
+                .lineLimit(1)
         }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: Plan Content
@@ -207,18 +214,27 @@ struct ActionPlanView: View {
     }
 
     private func parsePlanItems(_ plan: String) -> [String] {
-        let lines = plan.components(separatedBy: "\n").map { $0.trimmingCharacters(in: .whitespaces) }
+        let lines = plan.components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
         var items: [String] = []
         for line in lines {
-            if line.hasPrefix("1.") || line.hasPrefix("2.") || line.hasPrefix("3.") {
-                let cleaned = line.dropFirst(2).trimmingCharacters(in: .whitespaces)
+            // "1. " / "12. " numbered lists
+            if let match = line.range(of: #"^\d+\.\s+"#, options: .regularExpression) {
+                let cleaned = String(line[match.upperBound...]).trimmingCharacters(in: .whitespaces)
+                if !cleaned.isEmpty { items.append(cleaned) }
+            // "- " / "• " / "* " bullets
+            } else if line.hasPrefix("- ") || line.hasPrefix("• ") || line.hasPrefix("* ") {
+                let cleaned = String(line.dropFirst(2)).trimmingCharacters(in: .whitespaces)
                 if !cleaned.isEmpty { items.append(cleaned) }
             }
         }
+        // Fallback: any substantive line
         if items.isEmpty {
-            items = lines.filter { !$0.isEmpty && $0.count > 10 }
+            items = lines.filter { $0.count > 10 }
         }
-        return Array(items.prefix(3))
+        return Array(items.prefix(5))
     }
 
     // MARK: Bottom Actions

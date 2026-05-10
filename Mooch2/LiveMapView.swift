@@ -28,6 +28,9 @@ struct LiveMapView: View {
 
             // Top HUD
             VStack(spacing: 0) {
+                if appState.isDemoMode {
+                    demoRibbon
+                }
                 topHUD
                 if appState.fireAlertActive {
                     fireAlertBanner
@@ -47,6 +50,7 @@ struct LiveMapView: View {
                 showActionPlan: $showActionPlan,
                 showFarmList: $showFarmList
             )
+            .padding(.horizontal, 14)
         }
         .fullScreenCover(isPresented: $showActionPlan) {
             ActionPlanView()
@@ -60,6 +64,27 @@ struct LiveMapView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: appState.fireAlertActive)
         .animation(.easeInOut(duration: 0.3), value: appState.isLoadingData)
+    }
+
+    // MARK: Demo Ribbon
+
+    private var demoRibbon: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 10))
+                .foregroundColor(Color.moochAmber)
+            Text("DEMO — Historical Camp Fire data · Nov 8 2018 · AQI 284 · Wind NE 35 mph")
+                .font(.system(size: 10, weight: .semibold, design: .monospaced))
+                .foregroundColor(Color.moochAmber)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 6)
+        .frame(maxWidth: .infinity)
+        .background(Color.moochAmberLight)
+        .overlay(Rectangle().frame(height: 1).foregroundColor(Color.moochAmber.opacity(0.3)), alignment: .bottom)
+        .padding(.horizontal, -14)
     }
 
     // MARK: Top HUD
@@ -367,20 +392,20 @@ struct FieldBriefDrawer: View {
     // MARK: Peek Content
 
     private var peekContent: some View {
-        HStack(alignment: .center, spacing: 10) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(appState.activeFarm?.name ?? "No Farm Selected")
-                    .font(.system(size: 16, weight: .semibold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundColor(Color.moochTextPrimary)
                     .lineLimit(1)
-                HStack(spacing: 6) {
+                HStack(spacing: 7) {
                     Circle()
                         .fill(statusColor)
-                        .frame(width: 6, height: 6)
+                        .frame(width: 7, height: 7)
                     Text(statusLine)
-                        .font(.system(size: 11, weight: .medium, design: .monospaced))
+                        .font(.system(size: 12, weight: .semibold, design: .monospaced))
                         .foregroundColor(statusColor)
-                        .tracking(0.5)
+                        .tracking(0.3)
                 }
             }
             Spacer()
@@ -389,16 +414,17 @@ struct FieldBriefDrawer: View {
                 showFarmList = true
             } label: {
                 Image(systemName: "arrow.triangle.2.circlepath")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(Color.moochTextSecondary)
-                    .frame(width: 34, height: 34)
+                    .frame(width: 36, height: 36)
                     .background(Color.moochSurface)
                     .clipShape(Circle())
                     .overlay(Circle().stroke(Color.moochBorder, lineWidth: 1))
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.bottom, 14)
+        .padding(.horizontal, 22)
+        .padding(.top, 14)
+        .padding(.bottom, 22)
     }
 
     // MARK: Expanded Content
@@ -407,7 +433,7 @@ struct FieldBriefDrawer: View {
     private var expandedContent: some View {
         Divider().background(Color.moochBorder)
         ScrollView {
-            VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 16) {
                 statusRows
                 actionPlanButton
                 AQIForecastBar(baseAQI: appState.aqiData.value)
@@ -422,25 +448,28 @@ struct FieldBriefDrawer: View {
                 }
                 resetButton
             }
-            .padding(16)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 18)
         }
         .frame(maxHeight: 440)
     }
 
     private var statusRows: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: 0) {
             if let dist = appState.nearestFireDistance {
                 StatusRow(
                     icon: "flame.fill",
                     label: String(format: "FIRE %.1f MI %@", dist, appState.nearestFireBearing),
                     color: appState.fireAlertActive ? .moochRed : .moochAmber
                 )
+                Divider().background(Color.moochBorder).padding(.vertical, 1)
             }
             StatusRow(
                 icon: "wind",
                 label: "\(appState.weatherData.windSpeed) MPH \(appState.weatherData.windDirection)",
                 color: Color.moochTextSecondary
             )
+            Divider().background(Color.moochBorder).padding(.vertical, 1)
             StatusRow(
                 icon: "aqi.medium",
                 label: "AQI \(appState.aqiData.value) — \(appState.aqiData.category)",
@@ -449,6 +478,8 @@ struct FieldBriefDrawer: View {
                              blue: appState.aqiData.ringColor.2)
             )
         }
+        .padding(.vertical, 4)
+        .glassCard(12)
     }
 
     private var actionPlanButton: some View {
@@ -495,14 +526,18 @@ struct StatusRow: View {
     let color: Color
 
     var body: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 11) {
             Image(systemName: icon)
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .foregroundColor(color)
-                .frame(width: 20)
+                .frame(width: 20, alignment: .center)
             Text(label)
                 .font(.system(size: 12, weight: .medium, design: .monospaced))
                 .foregroundColor(Color.moochTextPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
         }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
     }
 }

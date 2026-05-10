@@ -8,24 +8,32 @@ struct MoochLogo: View {
             RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
                 .fill(Color.moochGreen)
                 .frame(width: size, height: size)
-            Image(systemName: "flame.fill")
-                .font(.system(size: size * 0.52, weight: .bold))
+            Image("MoochLogo")
+                .resizable()
+                .renderingMode(.template)
+                .scaledToFit()
                 .foregroundColor(.white)
+                .frame(width: size * 0.68, height: size * 0.68)
         }
     }
 }
 
 struct MoochLogoPill: View {
     var body: some View {
-        HStack(spacing: 6) {
-            MoochLogo(size: 26)
+        HStack(spacing: 7) {
+            Image("MoochLogo")
+                .resizable()
+                .renderingMode(.template)
+                .scaledToFit()
+                .foregroundColor(Color.moochGreen)
+                .frame(width: 22, height: 22)
             Text("MOOCH")
                 .font(.system(size: 13, weight: .heavy, design: .rounded))
                 .foregroundColor(Color.moochTextPrimary)
                 .tracking(1.5)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 7)
         .glassCard(12)
     }
 }

@@ -27,10 +27,11 @@ struct MoochApp: App {
 struct SplashView: View {
     let onComplete: () -> Void
 
-    @State private var logoScale: CGFloat = 0.6
+    @State private var logoScale: CGFloat = 0.7
     @State private var logoOpacity: Double = 0
-    @State private var textOpacity: Double = 0
+    @State private var wordmarkOpacity: Double = 0
     @State private var subtitleOpacity: Double = 0
+    @State private var dotsOpacity: Double = 0
     @State private var activeDot = 0
 
     private let timer = Timer.publish(every: 0.45, on: .main, in: .common).autoconnect()
@@ -42,44 +43,49 @@ struct SplashView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                // Logo
-                MoochLogo(size: 72)
+                // Brand mark — cow logo raw on cream, no container
+                Image("MoochLogo")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 84, height: 84)
+                    .shadow(color: Color.moochGreen.opacity(0.15), radius: 16, x: 0, y: 6)
                     .scaleEffect(logoScale)
                     .opacity(logoOpacity)
-                    .padding(.bottom, 16)
 
                 // Wordmark
                 Text("Mooch")
-                    .font(.system(size: 40, weight: .heavy, design: .rounded))
+                    .font(.system(size: 44, weight: .heavy, design: .rounded))
                     .foregroundColor(Color(red: 0.102, green: 0.102, blue: 0.094))
-                    .opacity(textOpacity)
+                    .tracking(-0.5)
+                    .padding(.top, 20)
+                    .opacity(wordmarkOpacity)
 
                 // Subtitle
                 Text("FIELD INTELLIGENCE")
-                    .font(.system(size: 13, weight: .medium, design: .monospaced))
-                    .foregroundColor(Color(red: 0.420, green: 0.408, blue: 0.376))
-                    .tracking(1.5)
+                    .font(.system(size: 11, weight: .semibold, design: .monospaced))
+                    .foregroundColor(Color(red: 0.627, green: 0.616, blue: 0.596))
+                    .tracking(3.0)
+                    .padding(.top, 8)
                     .opacity(subtitleOpacity)
-                    .padding(.top, 6)
-
-                // Loading dots
-                HStack(spacing: 8) {
-                    ForEach(0..<3) { i in
-                        Circle()
-                            .fill(activeDot == i ? Color.moochGreen : Color(red: 0.898, green: 0.878, blue: 0.835))
-                            .frame(width: 6, height: 6)
-                            .animation(.easeInOut(duration: 0.2), value: activeDot)
-                    }
-                }
-                .padding(.top, 20)
-                .opacity(textOpacity)
 
                 Spacer()
 
-                // Field row decoration
-                FieldRowDecoration()
-                    .frame(height: 80)
-                    .opacity(textOpacity)
+                // Loading dots
+                HStack(spacing: 7) {
+                    ForEach(0..<3) { i in
+                        Circle()
+                            .fill(activeDot == i ? Color.moochGreen : Color(red: 0.878, green: 0.859, blue: 0.820))
+                            .frame(width: 5, height: 5)
+                            .animation(.easeInOut(duration: 0.2), value: activeDot)
+                    }
+                }
+                .padding(.bottom, 20)
+                .opacity(dotsOpacity)
+
+                // Perspective field rows — bottom accent
+                SplashFieldRows()
+                    .frame(height: 108)
+                    .opacity(dotsOpacity)
             }
         }
         .onAppear { startAnimations() }
@@ -89,47 +95,74 @@ struct SplashView: View {
     }
 
     private func startAnimations() {
-        withAnimation(.spring(response: 0.55, dampingFraction: 0.7)) {
+        withAnimation(.spring(response: 0.6, dampingFraction: 0.72)) {
             logoScale   = 1.0
             logoOpacity = 1.0
         }
-        withAnimation(.easeOut(duration: 0.5).delay(0.3)) {
-            textOpacity = 1.0
+        withAnimation(.easeOut(duration: 0.45).delay(0.35)) {
+            wordmarkOpacity = 1.0
         }
-        withAnimation(.easeOut(duration: 0.5).delay(0.5)) {
+        withAnimation(.easeOut(duration: 0.45).delay(0.55)) {
             subtitleOpacity = 1.0
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+        withAnimation(.easeOut(duration: 0.4).delay(0.75)) {
+            dotsOpacity = 1.0
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.2) {
             onComplete()
         }
     }
 
-    // Demo entry: "Paradise Farm" — Camp Fire, Butte County CA, used in loadDemoData()
     static let demoFarmName = "Paradise Farm"
 }
 
-// MARK: - Field Row Decoration
+// MARK: - Splash Field Rows
 
-struct FieldRowDecoration: View {
+struct SplashFieldRows: View {
+    @State private var glimmer = false
+
+    private let green = Color(red: 0.176, green: 0.416, blue: 0.184)
+
     var body: some View {
         Canvas { ctx, size in
-            let rowCount = 8
-            let rowHeight = size.height / CGFloat(rowCount)
-            let vanishX = size.width * 0.5
+            let bands = 12
+            let midX  = size.width * 0.5
+            let horizon = size.height * 0.08
 
-            for i in 0..<rowCount {
-                let t = CGFloat(i) / CGFloat(rowCount)
-                let y = rowHeight * CGFloat(i)
-                let leftX   = vanishX - (size.width * 0.6 * (1 - t * 0.4))
-                let rightX  = vanishX + (size.width * 0.6 * (1 - t * 0.4))
-                let alpha   = 0.05 + 0.12 * (1 - t)
-                let width   = max(1, 3 * (1 - t * 0.6))
+            for i in 0..<bands {
+                let t0 = CGFloat(i)       / CGFloat(bands)
+                let t1 = CGFloat(i + 1)   / CGFloat(bands)
 
-                var path = Path()
-                path.move(to: CGPoint(x: leftX, y: y))
-                path.addLine(to: CGPoint(x: rightX, y: y))
-                ctx.stroke(path, with: .color(.moochGreen.opacity(alpha)), lineWidth: width)
+                let y0 = horizon + (size.height - horizon) * t0
+                let y1 = horizon + (size.height - horizon) * t1
+
+                // Perspective spread — grows toward the viewer (bottom)
+                let s0 = size.width * 0.72 * pow(t0, 0.6)
+                let s1 = size.width * 0.72 * pow(t1, 0.6)
+
+                let alpha: CGFloat = i % 2 == 0 ? 0.09 : 0.03
+
+                var band = Path()
+                band.move(to: CGPoint(x: midX - s0, y: y0))
+                band.addLine(to: CGPoint(x: midX + s0, y: y0))
+                band.addLine(to: CGPoint(x: midX + s1, y: y1))
+                band.addLine(to: CGPoint(x: midX - s1, y: y1))
+                band.closeSubpath()
+
+                ctx.fill(band, with: .color(Color(red: 0.176, green: 0.416, blue: 0.184).opacity(alpha)))
             }
         }
+        // Fade out near the horizon so bands emerge from nothing
+        .mask(
+            LinearGradient(
+                colors: [.clear, .black],
+                startPoint: .top,
+                endPoint: UnitPoint(x: 0.5, y: 0.5)
+            )
+        )
+        // Gentle whole-view shimmer — slow breath
+        .opacity(glimmer ? 1.0 : 0.55)
+        .animation(.easeInOut(duration: 3.0).repeatForever(autoreverses: true), value: glimmer)
+        .onAppear { glimmer = true }
     }
 }

@@ -5,14 +5,14 @@ struct FarmSetupView: View {
     @Environment(AppState.self) private var appState
     @Environment(\.dismiss) private var dismiss
 
-    @State private var farmName = ""
-    @State private var latitude: Double? = nil
-    @State private var longitude: Double? = nil
-    @State private var latText = ""
-    @State private var lonText = ""
+    @State private var farmName = "Valley Walnut Co."
+    @State private var latitude: Double? = 39.7596
+    @State private var longitude: Double? = -121.6219
+    @State private var latText = "39.75960"
+    @State private var lonText = "-121.62190"
     @State private var selectedCrop: CropType = .walnuts
-    @State private var selectedWater: WaterSource = .well
-    @State private var acreageText = "40"
+    @State private var selectedWater: WaterSource = .canal
+    @State private var acreageText = "120"
     @State private var isLocating = false
     @State private var suggestedCrop: CropType? = nil
     @State private var isSaving = false
@@ -48,28 +48,55 @@ struct FarmSetupView: View {
     // MARK: Header
 
     private var headerSection: some View {
-        HStack {
-            VStack(alignment: .leading, spacing: 4) {
-                Text("NEW FARM")
-                    .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundColor(Color.moochTextTertiary)
-                    .tracking(2.0)
-                Text("Set Up Your Field")
-                    .font(.system(size: 24, weight: .heavy, design: .rounded))
-                    .foregroundColor(Color.moochTextPrimary)
-            }
-            Spacer()
-            if dismiss != nil {
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(Color.moochTextSecondary)
-                        .frame(width: 32, height: 32)
-                        .background(Color.moochSurface)
-                        .clipShape(Circle())
-                        .overlay(Circle().stroke(Color.moochBorder, lineWidth: 1))
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("NEW FARM")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(Color.moochTextTertiary)
+                        .tracking(2.0)
+                    HStack(spacing: 8) {
+                        Text("Set Up Your Field")
+                            .font(.system(size: 24, weight: .heavy, design: .rounded))
+                            .foregroundColor(Color.moochTextPrimary)
+                        Text("DEMO")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundColor(Color.moochAmber)
+                            .tracking(1.5)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(Color.moochAmberLight)
+                            .clipShape(Capsule())
+                    }
+                }
+                Spacer()
+                if dismiss != nil {
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(Color.moochTextSecondary)
+                            .frame(width: 32, height: 32)
+                            .background(Color.moochSurface)
+                            .clipShape(Circle())
+                            .overlay(Circle().stroke(Color.moochBorder, lineWidth: 1))
+                    }
                 }
             }
+            HStack(spacing: 6) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 10))
+                    .foregroundColor(Color.moochAmber)
+                Text("Coordinates frozen at 2018 Camp Fire origin · Pulga, Butte County CA")
+                    .font(.system(size: 10, weight: .medium, design: .monospaced))
+                    .foregroundColor(Color.moochAmber)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 7)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.moochAmberLight)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.moochAmber.opacity(0.25), lineWidth: 1))
         }
     }
 
@@ -287,7 +314,8 @@ struct FarmSetupView: View {
                 if isSaving {
                     ProgressView().tint(.white)
                 } else {
-                    Text("CONFIRM FARM")
+                    let isParadise = abs((latitude ?? 0) - 39.7596) < 0.001
+                    Text(isParadise ? "LAUNCH DEMO FARM" : "CONFIRM FARM")
                         .font(.system(size: 15, weight: .bold, design: .monospaced))
                         .tracking(1.5)
                 }
